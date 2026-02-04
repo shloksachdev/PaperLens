@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+python-multipart
+langchain==0.2.0
+langchain-community==0.2.0
+langchain-core==0.2.0
+langchain-huggingface==0.1.2
+faiss-cpu
+huggingface_hub
+pypdf
+sentence-transformers==2.7.0
+python-dotenv
+tiktoken
+protobuf==3.20.3
