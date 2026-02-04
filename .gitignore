@@ -19,6 +19,6 @@ backend/uploads/
 debug_output.txt
 analysis_error.txt
 analysis_error_v2.txt
-backend/test_analyze.py
-backend/test_upload.py
+**/test_analyze.py
+**/test_upload.py
 
