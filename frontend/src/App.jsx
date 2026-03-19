@@ -1,9 +1,16 @@
 import { useState } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import "./App.css";
 import { uploadPDF, getNotes, askQuestion } from "./api";
 import ReactMarkdown from "react-markdown";
+import Login from "./Login";
 
-function App() {
+function Dashboard({ onLogout }) {
   const [file, setFile] = useState(null);
   const [docId, setDocId] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -72,13 +79,24 @@ function App() {
 
   return (
     <div className="container">
-      <header className="header">
-        <h1>PaperLens</h1>
-        <p>Research Paper Summarizer & Intelligence</p>
+      <header
+        className="header"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div>
+          <h1>PaperLens</h1>
+          <p>Research Paper Summarizer & Intelligence</p>
+        </div>
+        <button className="btn secondary" onClick={onLogout}>
+          Logout
+        </button>
       </header>
 
       <main className="main-content">
-        {/* Upload Section */}
         <section className="card upload-section">
           <h2>Upload Research Paper</h2>
           <div className="upload-controls">
@@ -98,7 +116,6 @@ function App() {
 
         {docId && (
           <>
-            {/* Actions */}
             <section className="actions">
               <button
                 className="btn secondary"
@@ -109,9 +126,7 @@ function App() {
               </button>
             </section>
 
-            {/* Content Area: Split View */}
             <div className="split-view">
-              {/* Left: Notes */}
               <div className="panel notes-panel">
                 <div className="panel-header">
                   <h3>Analysis Results</h3>
@@ -134,7 +149,6 @@ function App() {
                 )}
               </div>
 
-              {/* Right: Chat */}
               <div className="panel chat-panel">
                 <div className="panel-header">
                   <h3>Q&A Interface</h3>
@@ -174,6 +188,41 @@ function App() {
         )}
       </main>
     </div>
+  );
+}
+
+function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+  };
+
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="/login"
+          element={
+            isAuthenticated ? (
+              <Navigate to="/" />
+            ) : (
+              <Login onLogin={() => setIsAuthenticated(true)} />
+            )
+          }
+        />
+        <Route
+          path="/"
+          element={
+            isAuthenticated ? (
+              <Dashboard onLogout={handleLogout} />
+            ) : (
+              <Navigate to="/login" />
+            )
+          }
+        />
+      </Routes>
+    </Router>
   );
 }
 

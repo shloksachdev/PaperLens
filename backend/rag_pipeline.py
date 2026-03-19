@@ -4,15 +4,17 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEndpoint
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
 load_dotenv()
 
 # Global storage for vector stores (in memory for simplicity)
 vector_stores = {}
+
+def format_docs(docs):
+    return "\n\n".join(doc.page_content for doc in docs)
 
 def process_pdf(file_path: str) -> str:
     doc_id = os.path.basename(file_path)
@@ -25,7 +27,7 @@ def process_pdf(file_path: str) -> str:
     
     if not texts:
         print(f"Warning: No texts found for {doc_id}. Using placeholder.")
-        from langchain.schema import Document
+        from langchain_core.documents import Document
         texts = [Document(page_content="No text content found in this document.", metadata={"source": file_path})]
 
     # Use a lightweight embedding model
@@ -64,12 +66,23 @@ def generate_notes(doc_id: str) -> dict:
     llm = get_llm()
     retriever = db.as_retriever(search_kwargs={"k": 5}) # Retrieve more context for summarization
     
-    # We will ask specific questions to populate the structure
-    # A single prompt could work, but chaining specific queries might be more robust.
-    # For speed, let's try a comprehensive single system prompt or a few key queries.
+    notes = {}
+    prompt = ChatPromptTemplate.from_template("""Answer the following question based only on the provided context:
+
+<context>
+{context}
+</context>
+
+Question: {input}""")
+
+    rag_chain = (
+        {"context": retriever | format_docs, "input": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
     
-    # Let's do a structured prompt approach.
-    sections = [
+    sections_to_extract = [
         "Problem Statement",
         "Motivation",
         "Methodology",
@@ -81,46 +94,9 @@ def generate_notes(doc_id: str) -> dict:
         "Key Takeaways"
     ]
     
-    notes = {}
-    
-    # We can try to get everything in one go to save API calls, but context window might be an issue.
-    # Let's try grouping them.
-    
-    prompt = ChatPromptTemplate.from_template("""Answer the following question based only on the provided context:
-
-<context>
-{context}
-</context>
-
-Question: {input}""")
-
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
-    
-    # Group 1: Introduction
-    query_intro = "Summarize the Problem Statement and Motivation of this paper. Return the answer as a concise list of bullet points."
-    response = retrieval_chain.invoke({"input": query_intro})
-    notes["Introduction"] = response["answer"]
-    
-    # Group 2: Key Concepts
-    query_inov = "What are the Core Innovations and Key Contributions of this paper? Return the answer as a concise list of bullet points."
-    response = retrieval_chain.invoke({"input": query_inov})
-    notes["Key Innovations"] = response["answer"]
-
-    # Group 3: Methods
-    query_method = "Describe the Methodology, Model Architecture, and Dataset used. Return the answer as a concise list of bullet points."
-    response = retrieval_chain.invoke({"input": query_method})
-    notes["Methodology"] = response["answer"]
-    
-    # Group 4: Results
-    query_results = "Summarize the Experiments, Results, and Key Takeaways. Return the answer as a concise list of bullet points."
-    response = retrieval_chain.invoke({"input": query_results})
-    notes["Results"] = response["answer"]
-    
-    # Group 5: Conclusion
-    query_conc = "What are the Limitations, Future Work, and Practical Applications stated? Return the answer as a concise list of bullet points."
-    response = retrieval_chain.invoke({"input": query_conc})
-    notes["Conclusion"] = response["answer"]
+    for section in sections_to_extract:
+        query = f"Extract and summarize the '{section}' from this document. Provide the answer clearly as a concise list of bullet points."
+        notes[section] = rag_chain.invoke(query)
 
     return notes
 
@@ -143,8 +119,11 @@ def answer_query(doc_id: str, query: str) -> str:
 
 Question: {input}""")
 
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+    rag_chain = (
+        {"context": retriever | format_docs, "input": RunnablePassthrough()}
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
     
-    response = retrieval_chain.invoke({"input": query})
-    return response["answer"]
+    return rag_chain.invoke(query)
