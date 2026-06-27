@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -191,10 +191,49 @@ function Dashboard({ onLogout }) {
   );
 }
 
+const getTokenFromCookie = () => {
+  const match = document.cookie.match(new RegExp('(^| )token=([^;]+)'));
+  if (match) return match[2];
+  return null;
+};
+
+const clearTokenCookie = () => {
+  document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+};
+
+const checkTokenValid = () => {
+  const token = getTokenFromCookie();
+  if (!token) return false;
+  try {
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+    const payload = JSON.parse(window.atob(base64));
+    if (payload.exp * 1000 < Date.now()) {
+      clearTokenCookie();
+      return false;
+    }
+    return true;
+  } catch (e) {
+    clearTokenCookie();
+    return false;
+  }
+};
+
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(checkTokenValid());
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const valid = checkTokenValid();
+      if (!valid && isAuthenticated) {
+        setIsAuthenticated(false);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isAuthenticated]);
 
   const handleLogout = () => {
+    clearTokenCookie();
     setIsAuthenticated(false);
   };
 

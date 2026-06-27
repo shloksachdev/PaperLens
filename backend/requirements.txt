@@ -14,3 +14,6 @@ tiktoken
 protobuf
 google-auth
 requests
+python-jose[cryptography]
+bcrypt
+SQLAlchemy

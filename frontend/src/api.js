@@ -1,4 +1,40 @@
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+
+const getTokenFromCookie = () => {
+  const match = document.cookie.match(new RegExp('(^| )token=([^;]+)'));
+  if (match) return match[2];
+  return null;
+};
+
+const clearTokenCookie = () => {
+  document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+};
+
+const setTokenCookie = (token) => {
+  document.cookie = `token=${token}; path=/;`;
+};
+
+const getAuthHeaders = () => {
+  const token = getTokenFromCookie();
+  const headers = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
+const handleResponse = async (response) => {
+  if (response.status === 401) {
+    clearTokenCookie();
+    window.location.href = "/login";
+    throw new Error("Session expired. Please log in again.");
+  }
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || `Request failed with status ${response.status}`);
+  }
+  return response.json();
+};
 
 export const uploadPDF = async (file) => {
   const formData = new FormData();
@@ -6,26 +42,24 @@ export const uploadPDF = async (file) => {
 
   const response = await fetch(`${API_BASE_URL}/upload`, {
     method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to upload file");
-  }
-
-  return response.json();
+  return handleResponse(response);
 };
 
 export const getNotes = async (docId) => {
   const response = await fetch(`${API_BASE_URL}/analyze/${docId}`, {
     method: "POST",
+    headers: {
+      ...getAuthHeaders(),
+    },
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to generate notes");
-  }
-
-  return response.json();
+  return handleResponse(response);
 };
 
 export const askQuestion = async (docId, query) => {
@@ -33,14 +67,13 @@ export const askQuestion = async (docId, query) => {
     `${API_BASE_URL}/ask/${docId}?query=${encodeURIComponent(query)}`,
     {
       method: "POST",
-    },
+      headers: {
+        ...getAuthHeaders(),
+      },
+    }
   );
 
-  if (!response.ok) {
-    throw new Error("Failed to get answer");
-  }
-
-  return response.json();
+  return handleResponse(response);
 };
 
 export const loginUser = async (username, password) => {
@@ -53,7 +86,11 @@ export const loginUser = async (username, password) => {
   if (!response.ok) {
     throw new Error("Login failed");
   }
-  return response.json();
+  const data = await response.json();
+  if (data.token) {
+    setTokenCookie(data.token);
+  }
+  return data;
 };
 
 export const googleLoginAPI = async (credential) => {
@@ -66,7 +103,11 @@ export const googleLoginAPI = async (credential) => {
   if (!response.ok) {
     throw new Error("Google Login failed");
   }
-  return response.json();
+  const data = await response.json();
+  if (data.token) {
+    setTokenCookie(data.token);
+  }
+  return data;
 };
 
 export const registerUser = async (email, password, fullName) => {

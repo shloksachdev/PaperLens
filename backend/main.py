@@ -7,7 +7,7 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 from database import engine, get_db, Base
 import models
-from auth import verify_password, get_password_hash, create_access_token
+from auth import verify_password, get_password_hash, create_access_token, get_current_user
 from rag_pipeline import process_pdf, generate_notes, answer_query
 
 # Create tables if they don't exist
@@ -32,7 +32,7 @@ def read_root():
     return {"message": "PaperLens API is running"}
 
 @app.post("/upload")
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(file: UploadFile = File(...), current_user: models.User = Depends(get_current_user)):
     file_path = os.path.join(UPLOAD_DIR, file.filename)
     try:
         with open(file_path, "wb") as buffer:
@@ -45,7 +45,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/analyze/{doc_id}")
-async def analyze_pdf(doc_id: str):
+async def analyze_pdf(doc_id: str, current_user: models.User = Depends(get_current_user)):
     try:
         notes = generate_notes(doc_id)
         return notes
@@ -53,7 +53,7 @@ async def analyze_pdf(doc_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/ask/{doc_id}")
-async def ask_question(doc_id: str, query: str):
+async def ask_question(doc_id: str, query: str, current_user: models.User = Depends(get_current_user)):
     try:
         answer = answer_query(doc_id, query)
         return {"answer": answer}
@@ -67,7 +67,7 @@ from google.auth.transport import requests as google_requests
 class RegisterRequest(BaseModel):
     email: str
     password: str
-    full_name: str = None
+    full_name: str | None = None
 
 class LoginRequest(BaseModel):
     username: str
@@ -102,6 +102,20 @@ async def login(req: LoginRequest, db: Session = Depends(get_db)):
     
     access_token = create_access_token(data={"sub": db_user.email})
     return {"success": True, "token": access_token, "user": db_user.email}
+
+from fastapi.security import OAuth2PasswordRequestForm
+
+@app.post("/token")
+async def swagger_login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    db_user = db.query(models.User).filter(models.User.email == form_data.username).first()
+    if not db_user or not db_user.hashed_password:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not verify_password(form_data.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    access_token = create_access_token(data={"sub": db_user.email})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post("/auth/google")
 async def google_login(req: GoogleLoginRequest, db: Session = Depends(get_db)):
