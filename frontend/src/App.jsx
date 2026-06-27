@@ -17,6 +17,16 @@ function Dashboard({ onLogout }) {
   const [notes, setNotes] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [query, setQuery] = useState("");
+  const [theme, setTheme] = useState(localStorage.getItem('theme') || 'light');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(theme === 'light' ? 'dark' : 'light');
+  };
 
   const handleFileChange = (e) => {
     if (e.target.files) {
@@ -91,9 +101,14 @@ function Dashboard({ onLogout }) {
           <h1>PaperLens</h1>
           <p>Research Paper Summarizer & Intelligence</p>
         </div>
-        <button className="btn secondary" onClick={onLogout}>
-          Logout
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn secondary" onClick={toggleTheme}>
+            {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+          </button>
+          <button className="btn secondary" onClick={onLogout}>
+            Logout
+          </button>
+        </div>
       </header>
 
       <main className="main-content">

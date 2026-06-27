@@ -8,9 +8,29 @@
   --text-main: #333333;
   --text-light: #7f8c8d;
   --border: #e0e0e0;
+  --surface-alt: #f8f9fa;
+  --surface-alt-2: #fcfcfc;
+  --surface-alt-3: #f0f0f0;
+  --surface-alt-4: #f9f9f9;
   --radius: 8px;
   --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
   --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+[data-theme='dark'] {
+  --primary: #90cdf4;
+  --primary-hover: #63b3ed;
+  --secondary: #63b3ed;
+  --secondary-hover: #4299e1;
+  --bg-color: #1a202c;
+  --surface: #2d3748;
+  --text-main: #f7fafc;
+  --text-light: #a0aec0;
+  --border: #4a5568;
+  --surface-alt: #4a5568;
+  --surface-alt-2: #2a4365;
+  --surface-alt-3: #4a5568;
+  --surface-alt-4: #1a202c;
 }
 
 body {
@@ -81,7 +101,7 @@ body {
   padding: 0.6rem 1.2rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  background: #f8f9fa;
+  background: var(--surface-alt);
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--text-main);
@@ -115,13 +135,13 @@ body {
 }
 
 .btn.secondary {
-  background-color: white;
+  background-color: var(--surface);
   border: 1px solid var(--primary);
   color: var(--primary);
 }
 
 .btn.secondary:hover {
-  background-color: #f8f9fa;
+  background-color: var(--surface-alt);
 }
 
 .btn:disabled {
@@ -153,7 +173,7 @@ body {
 .panel-header {
   padding: 1rem 1.5rem;
   border-bottom: 1px solid var(--border);
-  background: #fcfcfc;
+  background: var(--surface-alt-2);
 }
 
 .panel-header h3 {
@@ -179,7 +199,7 @@ body {
   text-transform: uppercase;
   color: var(--text-light);
   letter-spacing: 0.5px;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid var(--surface-alt-3);
   padding-bottom: 0.5rem;
   margin-bottom: 1rem;
 }
@@ -195,7 +215,7 @@ body {
   flex: 1;
   padding: 1.5rem;
   overflow-y: auto;
-  background: #f9f9f9;
+  background: var(--surface-alt-4);
 }
 
 .chat-msg {
@@ -228,7 +248,7 @@ body {
 }
 
 .chat-msg.bot .msg-content {
-  background-color: white;
+  background-color: var(--surface);
   border: 1px solid var(--border);
   color: var(--text-main);
   border-bottom-left-radius: 2px;
@@ -244,7 +264,7 @@ body {
 .chat-input-area {
   padding: 1rem;
   border-top: 1px solid var(--border);
-  background: white;
+  background: var(--surface);
   display: flex;
   gap: 0.5rem;
 }
