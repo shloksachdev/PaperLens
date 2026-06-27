@@ -9,6 +9,11 @@ A RAG (Retrieval-Augmented Generation) based application that analyzes research 
 - **Interactive Q&A**: Chat with your document to get specific answers.
 - **RAG Pipeline**: Built with LangChain, FAISS, and Hugging Face embeddings.
 
+## Live Demo
+
+- **Frontend Application**: [https://paperlens-ui.onrender.com](https://paperlens-ui.onrender.com)
+- **Backend API**: [https://paperlens-api-5iix.onrender.com](https://paperlens-api-5iix.onrender.com)
+
 ## Tech Stack
 
 - **Backend**: FastAPI, Python, LangChain, FAISS, Hugging Face
